@@ -1,0 +1,7 @@
+/vendor/
+/composer.lock
+/.phpunit.cache/
+/.phpunit.result.cache/
+/.psalm-cache/
+/.idea/
+.DS_Store

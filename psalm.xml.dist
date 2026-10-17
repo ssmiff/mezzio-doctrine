@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<psalm
+    cacheDirectory="./.psalm-cache"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="https://getpsalm.org/schema/config"
+    xsi:schemaLocation="https://getpsalm.org/schema/config vendor/vimeo/psalm/config.xsd"
+    errorLevel="1"
+    phpVersion="8.5"
+    findUnusedPsalmSuppress="true"
+    findUnusedCode="true"
+>
+    <projectFiles>
+        <directory name="src"/>
+        <directory name="test"/>
+        <ignoreFiles>
+            <directory name="vendor"/>
+        </ignoreFiles>
+    </projectFiles>
+    <issueHandlers>
+        <ArgumentTypeCoercion>
+            <errorLevel type="suppress">
+                <file name="src/Factory/ConnectionBuilder.php"/>
+            </errorLevel>
+        </ArgumentTypeCoercion>
+        <MixedReturnTypeCoercion>
+            <errorLevel type="suppress">
+                <file name="src/Support/Settings.php"/>
+            </errorLevel>
+        </MixedReturnTypeCoercion>
+        <UnsafeInstantiation>
+            <errorLevel type="suppress">
+                <file name="src/Factory/MigrationsCommandFactory.php"/>
+                <file name="src/Factory/OrmCommandFactory.php"/>
+            </errorLevel>
+        </UnsafeInstantiation>
+        <UnusedClass>
+            <errorLevel type="suppress">
+                <directory name="test/Fixture"/>
+            </errorLevel>
+        </UnusedClass>
+        <PossiblyUnusedMethod>
+            <errorLevel type="suppress">
+                <directory name="test/Fixture"/>
+            </errorLevel>
+        </PossiblyUnusedMethod>
+    </issueHandlers>
+    <plugins>
+        <pluginClass class="Psalm\PhpUnitPlugin\Plugin"/>
+    </plugins>
+</psalm>

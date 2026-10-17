@@ -5,3 +5,4 @@
 /.psalm-cache/
 /.idea/
 .DS_Store
+/.php-cs-fixer.cache

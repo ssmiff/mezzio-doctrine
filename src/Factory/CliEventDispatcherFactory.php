@@ -15,7 +15,7 @@ use Symfony\Component\EventDispatcher\EventDispatcher;
 final readonly class CliEventDispatcherFactory implements FactoryInterface
 {
     #[Override]
-    public function __invoke(ContainerInterface $container, $requestedName, array|null $options = null): EventDispatcher
+    public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null): EventDispatcher
     {
         $dispatcher = new EventDispatcher();
         $dispatcher->addListener(ConsoleEvents::COMMAND, Services::get($container, ConnectionOptionListener::class));

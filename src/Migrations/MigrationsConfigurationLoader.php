@@ -21,11 +21,9 @@ use function sprintf;
 
 final class MigrationsConfigurationLoader implements ConfigurationLoader
 {
-    public private(set) string|null $selected = null;
+    public private(set) ?string $selected = null;
 
-    public function __construct(private readonly Settings $config, private readonly Registry $registry)
-    {
-    }
+    public function __construct(private readonly Settings $config, private readonly Registry $registry) {}
 
     public function select(string $connection): void
     {

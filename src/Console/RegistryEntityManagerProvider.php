@@ -14,11 +14,9 @@ use function array_keys;
 
 final class RegistryEntityManagerProvider implements EntityManagerProvider
 {
-    public private(set) string|null $selected = null;
+    public private(set) ?string $selected = null;
 
-    public function __construct(private readonly Registry $registry)
-    {
-    }
+    public function __construct(private readonly Registry $registry) {}
 
     public function select(string $name): void
     {

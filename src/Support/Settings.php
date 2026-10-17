@@ -6,8 +6,6 @@ namespace Ssmiff\MezzioDoctrine\Support;
 
 use Psr\Container\ContainerInterface;
 
-use const ARRAY_FILTER_USE_KEY;
-
 use function array_combine;
 use function array_filter;
 use function array_key_exists;
@@ -19,12 +17,12 @@ use function is_bool;
 use function is_string;
 use function strval;
 
+use const ARRAY_FILTER_USE_KEY;
+
 final readonly class Settings
 {
     /** @param array<array-key, mixed> $values */
-    public function __construct(private array $values = [])
-    {
-    }
+    public function __construct(private array $values = []) {}
 
     public static function fromContainer(ContainerInterface $container): self
     {
@@ -47,7 +45,7 @@ final readonly class Settings
         return array_map(strval(...), array_keys($this->values));
     }
 
-    public function string(string $key): string|null
+    public function string(string $key): ?string
     {
         return self::asString($this->values[$key] ?? null);
     }
@@ -88,7 +86,7 @@ final readonly class Settings
         return is_bool($value) ? $value : $default;
     }
 
-    private static function asString(mixed $value): string|null
+    private static function asString(mixed $value): ?string
     {
         return is_string($value) ? $value : null;
     }

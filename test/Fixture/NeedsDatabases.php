@@ -17,6 +17,5 @@ final readonly class NeedsDatabases
         public EntityManagerInterface $reportingManager,
         #[UseConnection('my-db')]
         public Connection $myDbConnection,
-    ) {
-    }
+    ) {}
 }

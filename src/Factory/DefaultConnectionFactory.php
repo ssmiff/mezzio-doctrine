@@ -14,7 +14,7 @@ use Ssmiff\MezzioContainerHelpers\Services;
 final readonly class DefaultConnectionFactory implements FactoryInterface
 {
     #[Override]
-    public function __invoke(ContainerInterface $container, $requestedName, array|null $options = null): Connection
+    public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null): Connection
     {
         return Services::get($container, Registry::class)->connection();
     }

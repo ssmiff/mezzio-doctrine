@@ -13,6 +13,5 @@ final class Widget
         #[ORM\Id]
         #[ORM\Column]
         public int $id = 0,
-    ) {
-    }
+    ) {}
 }

@@ -20,7 +20,7 @@ use function preg_replace;
 final class ConsoleTest extends TestCase
 {
     /** @param array<array-key, mixed> $doctrine */
-    private function app(array $doctrine = [], ServiceManager|null $container = null): ApplicationTester
+    private function app(array $doctrine = [], ?ServiceManager $container = null): ApplicationTester
     {
         $container ??= $this->container($doctrine);
 

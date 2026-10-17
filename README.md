@@ -29,42 +29,104 @@ composer require ssmiff/mezzio-doctrine
 
 ## Configure
 
-`config/autoload/doctrine.global.php`:
+All configuration lives under the `doctrine` key, for example in `config/autoload/doctrine.global.php`. It has four main keys, then a few general settings:
 
 ```php
 return ['doctrine' => [
-    'default'     => 'main',
-    'connections' => [
-        'main'      => ['driver' => 'pdo_sqlite', 'path' => 'data/main.sqlite'],
-        'reporting' => ['driver' => 'pdo_mysql', 'host' => '...', 'dbname' => '...', 'user' => '...', 'password' => '...'],
-    ],
-    'entity_managers' => [
-        'main' => ['mapping' => ['paths' => ['src/App/Entity']]],
-    ],
-    'migrations' => [
-        'defaults'    => ['table_storage' => ['table_name' => 'doctrine_migration_versions']],
-        'connections' => [],
-    ],
+    'default'         => 'default',
+    'connections'     => ['default' => [...], 'reporting' => [...]],
+    'entity_managers' => ['default' => [...]],
+    'migrations'      => ['defaults' => [...], 'connections' => ['reporting' => [...]]],
+
+    'dev_mode'  => false,
+    'base_path' => '/path/to/project',
+    'cache_dir' => 'data/cache/doctrine',
+    'types'     => ['money' => App\Dbal\MoneyType::class],
 ]];
 ```
 
-| Key | Scope | Meaning |
-| --- | --- | --- |
-| `default` | root | connection and entity manager used when none is named |
-| `dev_mode` | root, entity manager | array caches instead of filesystem caches |
-| `base_path` | root | root for relative paths (defaults to the working directory) |
-| `cache_dir` | root | defaults to `data/cache/doctrine` |
-| `types` | root | custom DBAL types, `name => class` |
-| `logger` | connection | PSR-3 service id |
-| `middlewares` | connection | list of DBAL middleware service ids |
-| `connection` | entity manager | connection to use, defaults to the entity manager's own name |
-| `mapping.driver` | entity manager | `attributes` (default), `xml`, or a `MappingDriver` service id |
-| `mapping.paths` | entity manager | directories to scan |
-| `cache` | entity manager | PSR-6 pool service id |
-| `naming_strategy` | entity manager | `NamingStrategy` service id, defaults to underscore |
-| `event_subscribers` | entity manager | list of event subscriber service ids |
+### `default`
 
-Any other connection key is passed to `DriverManager::getConnection()`.
+The name of the connection (and its entity manager) used when none is chosen: with no `--conn` on a command, or when you inject a bare `Connection` or `EntityManagerInterface`.
+
+### `connections`
+
+One entry per database, keyed by name. The entry is plain Doctrine DBAL connection parameters, passed to `DriverManager::getConnection()`:
+
+```php
+'connections' => [
+    'default'   => ['driver' => 'pdo_sqlite', 'path' => 'data/default.sqlite'],
+    'reporting' => ['driver' => 'pdo_mysql', 'host' => '...', 'dbname' => '...', 'user' => '...', 'password' => '...'],
+    'tenant'    => ['url' => 'postgresql://user:pass@host/db', 'logger' => 'app.sql_logger'],
+],
+```
+
+Two extra keys are understood here and are not sent to DBAL: `logger` (a PSR-3 service id) and `middlewares` (a list of DBAL middleware service ids).
+
+### `entity_managers`
+
+Optional. Keyed by the same names as `connections`, it holds the ORM settings for that connection: where its entities are and how they are mapped. A connection with no entry still works for DBAL and migrations; it has an entity manager with no entities.
+
+```php
+'entity_managers' => [
+    'default' => [
+        'mapping' => ['driver' => 'attributes', 'paths' => ['src/App/Entity/Default']],
+    ],
+],
+```
+
+| Key | Meaning |
+| --- | --- |
+| `mapping.driver` | `attributes` (default), `xml`, or a `MappingDriver` service id |
+| `mapping.paths` | directories to scan, relative to `base_path` |
+| `connection` | connection to use; defaults to the entity manager's own name |
+| `dev_mode` | overrides the general `dev_mode` for this entity manager |
+| `cache` | PSR-6 pool service id for metadata, query and result caches |
+| `naming_strategy` | `NamingStrategy` service id; defaults to underscore |
+| `event_subscribers` | list of event subscriber service ids |
+
+### `migrations`
+
+Doctrine Migrations settings (`migrations_paths`, `table_storage`, `all_or_nothing`, `transactional`, `check_database_platform`, `organize_migrations`, `custom_template`).
+
+- `defaults` applies to every connection.
+- `connections.<name>` applies to one connection and replaces the same key from `defaults`.
+
+```php
+'migrations' => [
+    'defaults'    => ['table_storage' => ['table_name' => 'doctrine_migration_versions']],
+    'connections' => [
+        'reporting' => ['migrations_paths' => ['Reporting\\Migrations' => 'db/reporting']],
+    ],
+],
+```
+
+With nothing set, a connection `my-db` uses the directory `database/migrations/my-db` and the namespace `Database\Migrations\MyDb`.
+
+### General settings
+
+| Key | Meaning |
+| --- | --- |
+| `dev_mode` | array caches instead of filesystem caches; `false` by default |
+| `base_path` | root for relative paths; defaults to the working directory |
+| `cache_dir` | where caches go; defaults to `data/cache/doctrine` |
+| `types` | custom DBAL types, `name => class` |
+
+### Where does it go?
+
+| I want to... | Put it in |
+| --- | --- |
+| add a database | `connections.<name>` |
+| change the host, credentials or driver | `connections.<name>` |
+| log queries | `connections.<name>.logger` |
+| tell the ORM where a database's entities are | `entity_managers.<name>.mapping.paths` |
+| use XML mapping | `entity_managers.<name>.mapping.driver` |
+| change where a database's migrations live | `migrations.connections.<name>.migrations_paths` |
+| change the version table for every database | `migrations.defaults.table_storage` |
+| change the version table for one database | `migrations.connections.<name>.table_storage` |
+| choose which database is the default | `default` |
+| turn on development caching | `dev_mode` |
+| register a custom column type | `types` |
 
 ## Use
 

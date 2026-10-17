@@ -30,9 +30,7 @@ use const CASE_LOWER;
 
 final readonly class EntityManagerBuilder
 {
-    public function __construct(private ContainerInterface $container, private Settings $config)
-    {
-    }
+    public function __construct(private ContainerInterface $container, private Settings $config) {}
 
     public function build(string $name, Settings $settings, Connection $connection): EntityManagerInterface
     {
@@ -66,7 +64,7 @@ final readonly class EntityManagerBuilder
     {
         $driver = $mapping->string('driver') ?? 'attributes';
         $paths  = array_map(
-            static fn (string $path): string => Paths::resolve($path, $base),
+            static fn(string $path): string => Paths::resolve($path, $base),
             $mapping->strings('paths'),
         );
 

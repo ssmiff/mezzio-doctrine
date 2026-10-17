@@ -14,7 +14,7 @@ use Ssmiff\MezzioContainerHelpers\Services;
 final readonly class EntityManagerProviderFactory implements FactoryInterface
 {
     #[Override]
-    public function __invoke(ContainerInterface $container, $requestedName, array|null $options = null): RegistryEntityManagerProvider
+    public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null): RegistryEntityManagerProvider
     {
         return new RegistryEntityManagerProvider(Services::get($container, Registry::class));
     }

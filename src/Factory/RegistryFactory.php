@@ -13,7 +13,7 @@ use Ssmiff\MezzioDoctrine\Support\Settings;
 final readonly class RegistryFactory implements FactoryInterface
 {
     #[Override]
-    public function __invoke(ContainerInterface $container, $requestedName, array|null $options = null): Registry
+    public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null): Registry
     {
         return new Registry(Settings::fromContainer($container), $container);
     }

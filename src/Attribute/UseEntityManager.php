@@ -13,9 +13,7 @@ use Ssmiff\MezzioDoctrine\ServiceId;
 #[Attribute(Attribute::TARGET_PARAMETER | Attribute::TARGET_PROPERTY)]
 final readonly class UseEntityManager implements ParameterSource
 {
-    public function __construct(public string $name)
-    {
-    }
+    public function __construct(public string $name) {}
 
     #[Override]
     public function resolve(ContainerInterface $container): mixed

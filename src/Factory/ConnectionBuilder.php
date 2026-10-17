@@ -25,16 +25,14 @@ use function sprintf;
 
 final readonly class ConnectionBuilder
 {
-    public function __construct(private ContainerInterface $container, private Settings $config)
-    {
-    }
+    public function __construct(private ContainerInterface $container, private Settings $config) {}
 
     public function build(Settings $params): Connection
     {
         $this->registerTypes();
 
         $middlewares = array_map(
-            fn (string $id): Middleware => Services::get($this->container, Middleware::class, $id),
+            fn(string $id): Middleware => Services::get($this->container, Middleware::class, $id),
             $params->strings('middlewares'),
         );
 

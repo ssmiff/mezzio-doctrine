@@ -68,14 +68,14 @@ final class Registry extends AbstractManagerRegistry
         );
     }
 
-    public function connection(string|null $name = null): Connection
+    public function connection(?string $name = null): Connection
     {
         $connection = $this->getConnection($name);
 
         return $connection instanceof Connection ? $connection : throw new InvalidArgumentException('Not a DBAL connection.');
     }
 
-    public function entityManager(string|null $name = null): EntityManagerInterface
+    public function entityManager(?string $name = null): EntityManagerInterface
     {
         $manager = $this->getManager($name);
 
@@ -139,6 +139,6 @@ final class Registry extends AbstractManagerRegistry
      */
     private static function ids(string $prefix, array $names): array
     {
-        return array_combine($names, array_map(static fn (string $name): string => $prefix . $name, $names));
+        return array_combine($names, array_map(static fn(string $name): string => $prefix . $name, $names));
     }
 }

@@ -37,7 +37,7 @@ final readonly class NamedServiceAbstractFactory implements AbstractFactoryInter
     }
 
     #[Override]
-    public function __invoke(ContainerInterface $container, $requestedName, array|null $options = null): object
+    public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null): object
     {
         $registry = Services::get($container, Registry::class);
 

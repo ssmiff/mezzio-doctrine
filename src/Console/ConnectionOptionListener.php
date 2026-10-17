@@ -24,8 +24,7 @@ final readonly class ConnectionOptionListener
         private Registry $registry,
         private MigrationsConfigurationLoader $migrations,
         private RegistryEntityManagerProvider $entityManagers,
-    ) {
-    }
+    ) {}
 
     public function __invoke(ConsoleCommandEvent $event): void
     {
@@ -92,7 +91,7 @@ final readonly class ConnectionOptionListener
         $table = $this->registry->versionTable($this->registry->managerConnection($manager));
 
         $this->registry->entityManager($manager)->getConnection()->getConfiguration()->setSchemaAssetsFilter(
-            static fn (string $asset): bool => $asset !== $table,
+            static fn(string $asset): bool => $asset !== $table,
         );
     }
 

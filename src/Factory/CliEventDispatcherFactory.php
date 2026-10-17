@@ -8,6 +8,8 @@ use Laminas\ServiceManager\Factory\FactoryInterface;
 use Override;
 use Psr\Container\ContainerInterface;
 use Ssmiff\MezzioDoctrine\Console\ConnectionOptionListener;
+use Ssmiff\MezzioDoctrine\Console\ConsoleCommandListener;
+use Ssmiff\MezzioDoctrine\Support\Settings;
 use Ssmiff\MezzioContainerHelpers\Services;
 use Symfony\Component\Console\ConsoleEvents;
 use Symfony\Component\EventDispatcher\EventDispatcher;
@@ -19,6 +21,11 @@ final readonly class CliEventDispatcherFactory implements FactoryInterface
     {
         $dispatcher = new EventDispatcher();
         $dispatcher->addListener(ConsoleEvents::COMMAND, Services::get($container, ConnectionOptionListener::class));
+
+        foreach (Settings::fromContainer($container)->intMap('console_listeners') as $id => $priority) {
+            $listener = Services::get($container, ConsoleCommandListener::class, $id);
+            $dispatcher->addListener(ConsoleEvents::COMMAND, $listener, $priority);
+        }
 
         return $dispatcher;
     }

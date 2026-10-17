@@ -29,9 +29,15 @@ final readonly class NamedServiceAbstractFactory implements AbstractFactoryInter
 
         return match (true) {
             str_starts_with($requestedName, ServiceId::CONNECTION)
-                => array_key_exists(substr($requestedName, strlen(ServiceId::CONNECTION)), $registry->getConnectionNames()),
+                    => array_key_exists(
+                        substr($requestedName, strlen(ServiceId::CONNECTION)),
+                        $registry->getConnectionNames(),
+                    ),
             str_starts_with($requestedName, ServiceId::ENTITY_MANAGER)
-                => array_key_exists(substr($requestedName, strlen(ServiceId::ENTITY_MANAGER)), $registry->getManagerNames()),
+                    => array_key_exists(
+                        substr($requestedName, strlen(ServiceId::ENTITY_MANAGER)),
+                        $registry->getManagerNames(),
+                    ),
             default => false,
         };
     }

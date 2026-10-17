@@ -15,8 +15,11 @@ use Ssmiff\MezzioDoctrine\Support\Settings;
 final readonly class MigrationsConfigurationLoaderFactory implements FactoryInterface
 {
     #[Override]
-    public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null): MigrationsConfigurationLoader
-    {
+    public function __invoke(
+        ContainerInterface $container,
+        $requestedName,
+        ?array $options = null,
+    ): MigrationsConfigurationLoader {
         return new MigrationsConfigurationLoader(
             Settings::fromContainer($container),
             Services::get($container, Registry::class),

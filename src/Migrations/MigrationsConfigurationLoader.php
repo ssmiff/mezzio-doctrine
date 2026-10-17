@@ -57,7 +57,9 @@ final class MigrationsConfigurationLoader implements ConfigurationLoader
 
         $configured = ($override->has('migrations_paths') ? $override : $defaults)->stringMap('migrations_paths');
         $paths      = [];
-        foreach ($configured ?: ['Database\\Migrations\\' . Paths::studly($name) => 'database/migrations/' . $name] as $namespace => $path) {
+        $default = ['Database\\Migrations\\' . Paths::studly($name) => 'database/migrations/' . $name];
+
+        foreach ($configured ?: $default as $namespace => $path) {
             $paths[$namespace] = Paths::resolve($path, $base);
 
             if (! is_dir($paths[$namespace])) {

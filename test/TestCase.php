@@ -55,7 +55,10 @@ abstract class TestCase extends PhpUnitTestCase
         );
 
         $dependencies              = $provider->dependencies();
-        $dependencies['factories'] = [...$dependencies['factories'], ...new HelpersConfigProvider()->dependencies()['factories']];
+        $dependencies['factories'] = [
+            ...$dependencies['factories'],
+            ...new HelpersConfigProvider()->dependencies()['factories'],
+        ];
 
         $container = new ServiceManager($dependencies);
         $container->setService('config', $config);

@@ -20,8 +20,11 @@ use function sprintf;
 final readonly class OrmCommandFactory implements FactoryInterface
 {
     #[Override]
-    public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null): AbstractEntityManagerCommand
-    {
+    public function __invoke(
+        ContainerInterface $container,
+        $requestedName,
+        ?array $options = null,
+    ): AbstractEntityManagerCommand {
         if (! is_subclass_of($requestedName, AbstractEntityManagerCommand::class)) {
             throw new InvalidArgumentException(sprintf('%s is not a Doctrine ORM command.', $requestedName));
         }

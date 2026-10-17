@@ -15,6 +15,7 @@ use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 use Ssmiff\MezzioDoctrine\Support\Paths;
 use Ssmiff\MezzioContainerHelpers\Services;
+use Ssmiff\MezzioDoctrine\ParamsProvider;
 use Ssmiff\MezzioDoctrine\Support\Settings;
 
 use function array_diff_key;
@@ -41,10 +42,13 @@ final readonly class ConnectionBuilder
             $middlewares[] = new LoggingMiddleware(Services::get($this->container, LoggerInterface::class, $logger));
         }
 
-        $options = array_diff_key($params->toArray(), ['middlewares' => true, 'logger' => true]);
+        $provider = $params->string('params_provider');
+        $options = $provider === null
+            ? array_diff_key($params->toArray(), ['middlewares' => true, 'logger' => true])
+            : Services::get($this->container, ParamsProvider::class, $provider)->params();
 
-        $path = $params->string('path');
-        if ($path !== null && in_array($params->string('driver'), ['pdo_sqlite', 'sqlite3'], true)) {
+        $path = new Settings($options)->string('path');
+        if ($path !== null && in_array($options['driver'] ?? null, ['pdo_sqlite', 'sqlite3'], true)) {
             $options['path'] = Paths::resolve($path, Paths::base($this->config));
         }
 
@@ -58,7 +62,9 @@ final readonly class ConnectionBuilder
     {
         foreach ($this->config->stringMap('types') as $name => $class) {
             if (! is_subclass_of($class, Type::class)) {
-                throw new InvalidArgumentException(sprintf('Type "%s": %s is not a Doctrine DBAL type.', $name, $class));
+                throw new InvalidArgumentException(
+                    sprintf('Type "%s": %s is not a Doctrine DBAL type.', $name, $class),
+                );
             }
 
             if (! Type::hasType($name)) {

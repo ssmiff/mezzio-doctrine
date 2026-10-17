@@ -8,11 +8,13 @@ use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use InvalidArgumentException;
+use Laminas\ServiceManager\Factory\InvokableFactory;
 use Ssmiff\MezzioDoctrine\Registry;
 use Ssmiff\MezzioDoctrine\ServiceId;
 use Ssmiff\MezzioContainerHelpers\Services;
 
 use function array_keys;
+use function mkdir;
 
 final class RegistryTest extends TestCase
 {
@@ -66,6 +68,37 @@ final class RegistryTest extends TestCase
         self::assertTrue($container->has(ServiceId::entityManager('my-db')));
         self::assertFalse($container->has(ServiceId::entityManager('nope')));
         self::assertFalse($container->has(ServiceId::connection('nope')));
+    }
+
+    public function testResetRebuildsTheConnectionAndEntityManager(): void
+    {
+        $registry = $this->registry();
+        $before   = $registry->connection('reporting');
+        $manager  = $registry->entityManager('reporting');
+
+        $registry->reset('reporting');
+
+        self::assertNotSame($before, $registry->connection('reporting'));
+        self::assertNotSame($manager, $registry->entityManager('reporting'));
+        self::assertSame($registry->connection('reporting'), $registry->entityManager('reporting')->getConnection());
+    }
+
+    public function testParamsProviderSuppliesConnectionParamsAtRuntime(): void
+    {
+        $container = $this->container([
+            'connections' => ['dynamic' => ['params_provider' => Fixture\FileProvider::class]],
+        ]);
+        $container->setFactory(Fixture\FileProvider::class, InvokableFactory::class);
+        $registry = Services::get($container, Registry::class);
+
+        mkdir($this->base, 0775, true);
+        Fixture\FileProvider::$path = $this->base . '/a.sqlite';
+        $registry->connection('dynamic')->executeStatement('CREATE TABLE a (id INTEGER)');
+
+        $registry->reset('dynamic');
+        Fixture\FileProvider::$path = $this->base . '/b.sqlite';
+
+        self::assertFalse($registry->connection('dynamic')->createSchemaManager()->tablesExist(['a']));
     }
 
     public function testDefaultCanBeAnyConnection(): void

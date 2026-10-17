@@ -75,6 +75,14 @@ final readonly class Settings
         return array_filter($this->values, 'is_string', ARRAY_FILTER_USE_KEY);
     }
 
+    /** @return array<string, int> */
+    public function intMap(string $key): array
+    {
+        $ints = array_filter($this->child($key)->values, 'is_int');
+
+        return array_combine(array_map(strval(...), array_keys($ints)), $ints);
+    }
+
     /** @return array<array-key, mixed> */
     private static function asArray(mixed $value): array
     {

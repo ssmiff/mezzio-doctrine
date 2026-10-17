@@ -28,7 +28,8 @@ final class ConsoleTest extends TestCase
         $application->setAutoExit(false);
         $application->setCatchExceptions(false);
         $application->setCommandLoader(new ContainerCommandLoader($container, new ConfigProvider()->commands()));
-        $application->setDispatcher(Services::get($container, EventDispatcher::class, ConfigProvider::CLI_EVENT_DISPATCHER));
+        $dispatcher = Services::get($container, EventDispatcher::class, ConfigProvider::CLI_EVENT_DISPATCHER);
+        $application->setDispatcher($dispatcher);
 
         return new ApplicationTester($application);
     }
@@ -61,7 +62,9 @@ final class ConsoleTest extends TestCase
     {
         $container = $this->container([
             'connections' => ['reporting' => ['memory' => false, 'path' => $this->base . '/reporting.sqlite']],
-            'migrations'  => ['connections' => ['reporting' => ['migrations_paths' => ['Reporting' => 'migrations/reporting']]]],
+            'migrations' => ['connections' => ['reporting' => [
+                'migrations_paths' => ['Reporting' => 'migrations/reporting'],
+            ]]],
         ]);
         mkdir($this->base . '/migrations/reporting', 0775, true);
         file_put_contents($this->base . '/migrations/reporting/Version1.php', <<<'PHP'
@@ -81,7 +84,8 @@ final class ConsoleTest extends TestCase
         $registry = Services::get($container, Registry::class);
         self::assertTrue($registry->connection('reporting')->createSchemaManager()->tablesExist(['stats']));
         self::assertFalse($registry->connection('main')->createSchemaManager()->tablesExist(['stats']));
-        self::assertFalse($registry->connection('main')->createSchemaManager()->tablesExist(['doctrine_migration_versions']));
+        $main = $registry->connection('main')->createSchemaManager();
+        self::assertFalse($main->tablesExist(['doctrine_migration_versions']));
     }
 
     public function testEmIsAcceptedAsASynonymForMigrations(): void

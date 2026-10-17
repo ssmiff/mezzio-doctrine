@@ -41,7 +41,9 @@ final class Registry extends AbstractManagerRegistry
     {
         $connectionNames = $config->child('connections')->keys();
         if ($connectionNames === []) {
-            throw new InvalidArgumentException('No connections configured. Define at least one in doctrine.connections.');
+            throw new InvalidArgumentException(
+                'No connections configured. Define at least one in doctrine.connections.',
+            );
         }
 
         $managerNames = array_values(array_unique([...$connectionNames, ...$config->child('entity_managers')->keys()]));
@@ -72,14 +74,18 @@ final class Registry extends AbstractManagerRegistry
     {
         $connection = $this->getConnection($name);
 
-        return $connection instanceof Connection ? $connection : throw new InvalidArgumentException('Not a DBAL connection.');
+        return $connection instanceof Connection
+            ? $connection
+            : throw new InvalidArgumentException('Not a DBAL connection.');
     }
 
     public function entityManager(?string $name = null): EntityManagerInterface
     {
         $manager = $this->getManager($name);
 
-        return $manager instanceof EntityManagerInterface ? $manager : throw new InvalidArgumentException('Not an ORM entity manager.');
+        return $manager instanceof EntityManagerInterface
+            ? $manager
+            : throw new InvalidArgumentException('Not an ORM entity manager.');
     }
 
     public function connectionSettings(string $name): Settings
@@ -99,6 +105,21 @@ final class Registry extends AbstractManagerRegistry
         return $migrations->child('connections')->child($connection)->child('table_storage')->string('table_name')
             ?? $migrations->child('defaults')->child('table_storage')->string('table_name')
             ?? 'doctrine_migration_versions';
+    }
+
+    public function reset(string $name): void
+    {
+        foreach ([self::MANAGER . $name, self::CONNECTION . $name] as $id) {
+            $instance = $this->instances[$id] ?? null;
+
+            if ($instance instanceof EntityManagerInterface) {
+                $instance->close();
+            } elseif ($instance instanceof Connection) {
+                $instance->close();
+            }
+
+            unset($this->instances[$id]);
+        }
     }
 
     #[Override]

@@ -17,7 +17,8 @@ final readonly class Caches
             return new ArrayAdapter();
         }
 
-        $directory = Paths::resolve($config->string('cache_dir') ?? 'data/cache/doctrine', Paths::base($config)) . '/' . $namespace;
+        $base = Paths::base($config);
+        $directory = Paths::resolve($config->string('cache_dir') ?? 'data/cache/doctrine', $base) . '/' . $namespace;
 
         return PhpFilesAdapter::isSupported()
             ? new PhpFilesAdapter('doctrine_' . $namespace, 0, $directory)

@@ -224,3 +224,12 @@ Inject the `Registry` itself only when the connection is chosen at runtime, for 
 composer install
 composer check
 ```
+
+## Extension points
+
+These exist so other packages, such as [ssmiff/mezzio-tenancy](https://github.com/ssmiff/mezzio-tenancy), can build on the registry.
+
+- **Dynamic connections.** A connection entry with `'params_provider' => SomeProvider::class` takes its DBAL parameters from that service (an `Ssmiff\MezzioDoctrine\ParamsProvider`) when the connection is first used, instead of from config.
+- **`Registry::reset(string $name)`** closes the named connection and entity manager and forgets them, so the next use rebuilds them. Combined with a params provider it re-points a connection at runtime.
+- **Console listeners.** `doctrine.console_listeners` maps service ids to priorities; each service is an `Ssmiff\MezzioDoctrine\Console\ConsoleCommandListener` attached to the console command event, before the `--conn` listener when its priority is above 0.
+

@@ -18,6 +18,13 @@ use Ssmiff\MezzioDoctrine\Console\ConnectionOptionListener;
 use Ssmiff\MezzioDoctrine\Console\ConnectionsCommand;
 use Ssmiff\MezzioDoctrine\Migrations\MigrationsConfigurationLoader;
 
+/**
+ * @psalm-type Dependencies = array{
+ *     aliases: array<string, string>,
+ *     factories: array<string, class-string<FactoryInterface>>,
+ *     abstract_factories: list<class-string<AbstractFactoryInterface>>,
+ * }
+ */
 final readonly class ConfigProvider
 {
     public const string CLI_EVENT_DISPATCHER = 'Laminas\Cli\SymfonyEventDispatcher';
@@ -53,7 +60,7 @@ final readonly class ConfigProvider
 
     /**
      * @return array{
-     *     dependencies: array{aliases: array<string, string>, factories: array<string, class-string<FactoryInterface>>, abstract_factories: list<class-string<AbstractFactoryInterface>>},
+     *     dependencies: Dependencies,
      *     'laminas-cli': array{commands: array<string, class-string>},
      *     doctrine: array<string, mixed>,
      * }
@@ -73,7 +80,7 @@ final readonly class ConfigProvider
         ];
     }
 
-    /** @return array{aliases: array<string, string>, factories: array<string, class-string<FactoryInterface>>, abstract_factories: list<class-string<AbstractFactoryInterface>>} */
+    /** @return Dependencies */
     public function dependencies(): array
     {
         $factories = [

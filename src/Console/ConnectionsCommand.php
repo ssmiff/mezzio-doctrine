@@ -6,6 +6,7 @@ namespace Ssmiff\MezzioDoctrine\Console;
 
 use Override;
 use Ssmiff\MezzioDoctrine\Registry;
+use Ssmiff\MezzioDoctrine\Support\Settings;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\Table;
@@ -33,7 +34,7 @@ final class ConnectionsCommand extends Command
             $table->addRow([
                 $name,
                 $name === $this->registry->getDefaultConnectionName() ? 'yes' : '',
-                $params->string('driver') ?? ($params->has('url') ? 'url' : '?'),
+                $params->string('driver') ?? self::fallbackDriver($params),
                 $params->string('path') ?? $params->string('dbname') ?? ($params->bool('memory') ? ':memory:' : ''),
             ]);
         }
@@ -41,5 +42,14 @@ final class ConnectionsCommand extends Command
         $table->render();
 
         return Command::SUCCESS;
+    }
+
+    private static function fallbackDriver(Settings $params): string
+    {
+        return match (true) {
+            $params->has('params_provider') => 'dynamic',
+            $params->has('url') => 'url',
+            default => '?',
+        };
     }
 }

@@ -6,6 +6,7 @@ namespace Ssmiff\MezzioDoctrine\Console;
 
 use Doctrine\Migrations\Tools\Console\Command\DoctrineCommand;
 use InvalidArgumentException;
+use Override;
 use RuntimeException;
 use Ssmiff\MezzioDoctrine\Migrations\MigrationsConfigurationLoader;
 use Ssmiff\MezzioDoctrine\Registry;
@@ -18,7 +19,7 @@ use function array_keys;
 use function implode;
 use function sprintf;
 
-final readonly class ConnectionOptionListener
+final readonly class ConnectionOptionListener implements ConsoleCommandListener
 {
     public function __construct(
         private Registry $registry,
@@ -26,6 +27,7 @@ final readonly class ConnectionOptionListener
         private RegistryEntityManagerProvider $entityManagers,
     ) {}
 
+    #[Override]
     public function __invoke(ConsoleCommandEvent $event): void
     {
         $command = $event->getCommand();
@@ -38,7 +40,10 @@ final readonly class ConnectionOptionListener
             ? $this->selectForMigrations($command, $input)
             : $this->selectForOrm($input);
 
-        $event->getOutput()->writeln(sprintf('<info>Using connection "%s"</info>', $name), OutputInterface::VERBOSITY_VERBOSE);
+        $event->getOutput()->writeln(
+            sprintf('<info>Using connection "%s"</info>', $name),
+            OutputInterface::VERBOSITY_VERBOSE,
+        );
     }
 
     private function selectForMigrations(DoctrineCommand $command, InputInterface $input): string

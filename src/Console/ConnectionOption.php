@@ -24,7 +24,10 @@ final readonly class ConnectionOption
             self::NAME,
             null,
             InputOption::VALUE_REQUIRED,
-            sprintf('The name of the connection to use. <comment>[default: %s]</comment>', $registry->getDefaultConnectionName()),
+            sprintf(
+                'The name of the connection to use. <comment>[default: %s]</comment>',
+                $registry->getDefaultConnectionName(),
+            ),
         );
     }
 }

@@ -17,7 +17,7 @@ final readonly class MigrationsConfigurationLoaderFactory implements FactoryInte
     #[Override]
     public function __invoke(
         ContainerInterface $container,
-        $requestedName,
+        string $requestedName,
         ?array $options = null,
     ): MigrationsConfigurationLoader {
         return new MigrationsConfigurationLoader(

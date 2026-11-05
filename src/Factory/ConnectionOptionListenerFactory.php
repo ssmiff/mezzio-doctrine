@@ -19,7 +19,7 @@ final readonly class ConnectionOptionListenerFactory implements FactoryInterface
     #[Override]
     public function __invoke(
         ContainerInterface $container,
-        $requestedName,
+        string $requestedName,
         ?array $options = null,
     ): ConnectionOptionListener {
         return new ConnectionOptionListener(

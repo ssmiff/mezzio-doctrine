@@ -19,7 +19,7 @@ use function substr;
 final readonly class NamedServiceAbstractFactory implements AbstractFactoryInterface
 {
     #[Override]
-    public function canCreate(ContainerInterface $container, $requestedName): bool
+    public function canCreate(ContainerInterface $container, string $requestedName): bool
     {
         if (! str_starts_with($requestedName, 'doctrine.')) {
             return false;
@@ -43,7 +43,7 @@ final readonly class NamedServiceAbstractFactory implements AbstractFactoryInter
     }
 
     #[Override]
-    public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null): object
+    public function __invoke(ContainerInterface $container, string $requestedName, ?array $options = null): object
     {
         $registry = Services::get($container, Registry::class);
 

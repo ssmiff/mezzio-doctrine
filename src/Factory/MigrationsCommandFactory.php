@@ -20,8 +20,11 @@ use function sprintf;
 final readonly class MigrationsCommandFactory implements FactoryInterface
 {
     #[Override]
-    public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null): DoctrineCommand
-    {
+    public function __invoke(
+        ContainerInterface $container,
+        string $requestedName,
+        ?array $options = null,
+    ): DoctrineCommand {
         if (! is_subclass_of($requestedName, DoctrineCommand::class)) {
             throw new InvalidArgumentException(sprintf('%s is not a Doctrine Migrations command.', $requestedName));
         }

@@ -16,7 +16,7 @@ final readonly class EntityManagerProviderFactory implements FactoryInterface
     #[Override]
     public function __invoke(
         ContainerInterface $container,
-        $requestedName,
+        string $requestedName,
         ?array $options = null,
     ): RegistryEntityManagerProvider {
         return new RegistryEntityManagerProvider(Services::get($container, Registry::class));

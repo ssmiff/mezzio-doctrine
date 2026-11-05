@@ -16,8 +16,11 @@ use Ssmiff\MezzioContainerHelpers\Services;
 final readonly class DependencyFactoryFactory implements FactoryInterface
 {
     #[Override]
-    public function __invoke(ContainerInterface $container, $requestedName, ?array $options = null): DependencyFactory
-    {
+    public function __invoke(
+        ContainerInterface $container,
+        string $requestedName,
+        ?array $options = null,
+    ): DependencyFactory {
         $registry = Services::get($container, Registry::class);
 
         return DependencyFactory::fromEntityManager(

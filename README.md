@@ -256,7 +256,28 @@ Doctrine's migrations and ORM commands are registered, each accepting `--conn=<n
 | --- |
 | `migrations:migrate`, `:status`, `:generate`, `:diff`, `:list`, `:execute`, `:version`, `:current`, `:latest`, `:up-to-date`, `:rollup`, `:dump-schema`, `:sync-metadata-storage` |
 | `orm:info`, `orm:validate-schema`, `orm:mapping:describe`, `orm:run-dql`, `orm:schema-tool:create`, `:update`, `:drop`, `orm:clear-cache:metadata`, `:query`, `:result` |
-| `db:connections` |
+| `db:connections`, `db:run-sql` |
+
+### Running SQL
+
+`db:run-sql` runs one statement on a connection (the default one unless `--conn` says otherwise). A query prints its
+rows as a table; anything else prints how many rows it changed:
+
+```
+vendor/bin/laminas db:run-sql "SELECT slug, name FROM tenants" --conn=landlord
+vendor/bin/laminas db:run-sql "UPDATE users SET active = 0 WHERE id = 42"
+vendor/bin/laminas db:run-sql "INSERT INTO tags (name) VALUES ('new') RETURNING id" --force-fetch
+```
+
+Statements starting with `SELECT`, `WITH`, `SHOW`, `EXPLAIN`, `DESCRIBE`, `PRAGMA`, `VALUES` or `TABLE` count as queries;
+`--force-fetch` shows the rows of anything else. It runs whatever it is given with the connection's full rights.
+
+### Commands of your own
+
+A command can take `--conn` too: add it with `ConnectionOption::addTo($command, $registry)` and implement
+`SelectsConnection`. The `--conn` listener checks the name and calls `selectConnection()` before the command runs;
+read the connection from there, not from the input, because Symfony parses the input again after the listeners, which
+would undo a listener that changed it (tenancy's `--tenant` does).
 
 ### Migrations per connection
 

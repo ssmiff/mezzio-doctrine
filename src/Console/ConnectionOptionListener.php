@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ssmiff\MezzioDoctrine\Console;
 
 use Doctrine\Migrations\Tools\Console\Command\DoctrineCommand;
+use Doctrine\ORM\Tools\Console\Command\AbstractEntityManagerCommand;
 use InvalidArgumentException;
 use Override;
 use RuntimeException;
@@ -36,14 +37,35 @@ final readonly class ConnectionOptionListener implements ConsoleCommandListener
         }
 
         $input = $event->getInput();
-        $name  = $command instanceof DoctrineCommand
-            ? $this->selectForMigrations($command, $input)
-            : $this->selectForOrm($input);
+        $name  = match (true) {
+            $command instanceof DoctrineCommand => $this->selectForMigrations($command, $input),
+            $command instanceof AbstractEntityManagerCommand => $this->selectForOrm($input),
+            default => $this->known(InputOptions::string($input, ConnectionOption::NAME)),
+        };
+
+        if ($command instanceof SelectsConnection) {
+            $command->selectConnection($name);
+        }
 
         $event->getOutput()->writeln(
             sprintf('<info>Using connection "%s"</info>', $name),
             OutputInterface::VERBOSITY_VERBOSE,
         );
+    }
+
+    private function known(?string $name): string
+    {
+        $name ??= $this->registry->getDefaultConnectionName();
+
+        if (! isset($this->registry->getConnectionNames()[$name])) {
+            throw new InvalidArgumentException(sprintf(
+                'Unknown connection "%s". Available connections: %s.',
+                $name,
+                implode(', ', array_keys($this->registry->getConnectionNames())),
+            ));
+        }
+
+        return $name;
     }
 
     private function selectForMigrations(DoctrineCommand $command, InputInterface $input): string

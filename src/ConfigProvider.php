@@ -16,6 +16,7 @@ use Laminas\ServiceManager\Factory\AbstractFactoryInterface;
 use Laminas\ServiceManager\Factory\FactoryInterface;
 use Ssmiff\MezzioDoctrine\Console\ConnectionOptionListener;
 use Ssmiff\MezzioDoctrine\Console\ConnectionsCommand;
+use Ssmiff\MezzioDoctrine\Console\RunSqlCommand;
 use Ssmiff\MezzioDoctrine\Migrations\MigrationsConfigurationLoader;
 
 /**
@@ -93,6 +94,7 @@ final readonly class ConfigProvider
             ConnectionOptionListener::class      => Factory\ConnectionOptionListenerFactory::class,
             self::CLI_EVENT_DISPATCHER           => Factory\CliEventDispatcherFactory::class,
             ConnectionsCommand::class            => Factory\ConnectionsCommandFactory::class,
+            RunSqlCommand::class                 => Factory\ConnectionsCommandFactory::class,
         ];
 
         foreach (self::MIGRATION_COMMANDS as $class) {
@@ -116,6 +118,11 @@ final readonly class ConfigProvider
     /** @return array<string, class-string> */
     public function commands(): array
     {
-        return ['db:connections' => ConnectionsCommand::class, ...self::MIGRATION_COMMANDS, ...self::ORM_COMMANDS];
+        return [
+            'db:connections' => ConnectionsCommand::class,
+            'db:run-sql'     => RunSqlCommand::class,
+            ...self::MIGRATION_COMMANDS,
+            ...self::ORM_COMMANDS,
+        ];
     }
 }

@@ -29,104 +29,178 @@ composer require ssmiff/mezzio-doctrine
 
 ## Configure
 
-All configuration lives under the `doctrine` key, for example in `config/autoload/doctrine.global.php`. It has four main keys, then a few general settings:
+Create one file, `config/autoload/doctrine.global.php`. Everything goes under the `doctrine` key.
+
+### Step 1: the smallest working setup
+
+One database, entities in `src/App/Entity`. Copy this and change the connection details:
 
 ```php
-return ['doctrine' => [
-    'default'         => 'default',
-    'connections'     => ['default' => [...], 'reporting' => [...]],
-    'entity_managers' => ['default' => [...]],
-    'migrations'      => ['defaults' => [...], 'connections' => ['reporting' => [...]]],
+<?php
 
-    'dev_mode'  => false,
-    'base_path' => '/path/to/project',
-    'cache_dir' => 'data/cache/doctrine',
-    'types'     => ['money' => App\Dbal\MoneyType::class],
-]];
+return [
+    'doctrine' => [
+        'connections' => [
+            'default' => [
+                'driver'   => 'pdo_mysql',
+                'host'     => 'localhost',
+                'dbname'   => 'my_app',
+                'user'     => 'root',
+                'password' => 'secret',
+            ],
+        ],
+        'entity_managers' => [
+            'default' => [
+                'mapping' => ['paths' => ['src/App/Entity']],
+            ],
+        ],
+    ],
+];
 ```
 
-### `default`
+That's it. You now have:
 
-The name of the connection (and its entity manager) used when none is chosen: with no `--conn` on a command, or when you inject a bare `Connection` or `EntityManagerInterface`.
+- a database connection called `default`
+- an entity manager that reads `#[ORM\Entity]` attributes from `src/App/Entity`
+- migrations in `database/migrations/default` (created for you the first time you run a migrations command)
 
-### `connections`
+Try it:
 
-One entry per database, keyed by name. The entry is plain Doctrine DBAL connection parameters, passed to `DriverManager::getConnection()`:
+```
+vendor/bin/laminas db:connections
+vendor/bin/laminas migrations:status
+```
+
+> **Using SQLite?** Replace the connection with `['driver' => 'pdo_sqlite', 'path' => 'data/app.sqlite']`.
+>
+> **Have a URL instead?** Use `['url' => 'postgresql://user:pass@host/dbname']`.
+>
+> Any option Doctrine DBAL accepts can go in a connection: see the
+> [DBAL configuration docs](https://www.doctrine-project.org/projects/doctrine-dbal/en/current/reference/configuration.html).
+
+> **Keep passwords out of git.** Put the connection in `doctrine.local.php` (which Mezzio ignores) or read it from the
+> environment, e.g. `'password' => getenv('DB_PASSWORD')`.
+
+### Step 2 (optional): add another database
+
+Give it a name and add it next to `default`. Here we add `reporting`:
 
 ```php
 'connections' => [
-    'default'   => ['driver' => 'pdo_sqlite', 'path' => 'data/default.sqlite'],
-    'reporting' => ['driver' => 'pdo_mysql', 'host' => '...', 'dbname' => '...', 'user' => '...', 'password' => '...'],
-    'tenant'    => ['url' => 'postgresql://user:pass@host/db', 'logger' => 'app.sql_logger'],
-],
-```
-
-Two extra keys are understood here and are not sent to DBAL: `logger` (a PSR-3 service id) and `middlewares` (a list of DBAL middleware service ids).
-
-### `entity_managers`
-
-Optional. Keyed by the same names as `connections`, it holds the ORM settings for that connection: where its entities are and how they are mapped. A connection with no entry still works for DBAL and migrations; it has an entity manager with no entities.
-
-```php
-'entity_managers' => [
-    'default' => [
-        'mapping' => ['driver' => 'attributes', 'paths' => ['src/App/Entity/Default']],
+    'default'   => [/* as before */],
+    'reporting' => [
+        'driver'   => 'pdo_pgsql',
+        'host'     => 'reports.internal',
+        'dbname'   => 'reports',
+        'user'     => 'app',
+        'password' => 'secret',
     ],
 ],
+'entity_managers' => [
+    'default'   => ['mapping' => ['paths' => ['src/App/Entity']]],
+    'reporting' => ['mapping' => ['paths' => ['src/Reporting/Entity']]],
+],
 ```
 
-| Key | Meaning |
+Then choose it with `--conn` on any command:
+
+```
+vendor/bin/laminas migrations:migrate --conn=reporting
+```
+
+Its migrations live in `database/migrations/reporting` by default.
+Leave out the `entity_managers` entry if a database has no entities (for example, you only run migrations or raw SQL against it).
+
+### Step 3 (optional): everything else
+
+You only need these if the defaults don't suit you. Each one goes under `doctrine`.
+
+| I want to... | Add this |
 | --- | --- |
-| `mapping.driver` | `attributes` (default), `xml`, or a `MappingDriver` service id |
-| `mapping.paths` | directories to scan, relative to `base_path` |
-| `connection` | connection to use; defaults to the entity manager's own name |
-| `dev_mode` | overrides the general `dev_mode` for this entity manager |
-| `cache` | PSR-6 pool service id for metadata, query and result caches |
-| `naming_strategy` | `NamingStrategy` service id; defaults to underscore |
-| `event_subscribers` | list of event subscriber service ids |
+| make a connection other than `default` the default | `'default' => 'reporting'` |
+| use the faster in-memory caches while developing | `'dev_mode' => true` (put it in `doctrine.local.php`) |
+| log every SQL query | `'logger' => 'my.psr3.logger'` inside the connection |
+| use XML mapping instead of attributes | `'driver' => 'xml'` inside `entity_managers.<name>.mapping` |
+| put migrations somewhere else | see [Migrations](#migrations-settings) below |
+| rename the migrations version table | see [Migrations](#migrations-settings) below |
+| add a custom column type | `'types' => ['money' => App\Dbal\MoneyType::class]` |
+| store caches somewhere other than `data/cache/doctrine` | `'cache_dir' => 'var/cache/doctrine'` |
 
-### `migrations`
+### Full reference
 
-Doctrine Migrations settings (`migrations_paths`, `table_storage`, `all_or_nothing`, `transactional`, `check_database_platform`, `organize_migrations`, `custom_template`).
+<details>
+<summary><strong>Top-level settings</strong> (directly under <code>doctrine</code>)</summary>
 
-- `defaults` applies to every connection.
-- `connections.<name>` applies to one connection and replaces the same key from `defaults`.
+| Key | Default | What it does |
+| --- | --- | --- |
+| `connections` | *required* | Your databases, keyed by name. See below. |
+| `entity_managers` | `[]` | ORM settings per database, using the same names. See below. |
+| `migrations` | `[]` | Migrations settings. See below. |
+| `default` | `'default'` | Which connection is used when you don't pick one. It must exist in `connections`. |
+| `dev_mode` | `false` | `true` uses in-memory caches, so entity changes are picked up immediately. |
+| `base_path` | current directory | Relative paths (entities, migrations, SQLite files, cache) are resolved from here. |
+| `cache_dir` | `'data/cache/doctrine'` | Where metadata/query caches are written when `dev_mode` is off. |
+| `types` | `[]` | Custom DBAL column types, as `'name' => ClassName::class`. |
+
+</details>
+
+<details>
+<summary><strong>Connection settings</strong> (<code>connections.&lt;name&gt;</code>)</summary>
+
+Any [Doctrine DBAL connection option](https://www.doctrine-project.org/projects/doctrine-dbal/en/current/reference/configuration.html)
+(`driver`, `host`, `port`, `dbname`, `user`, `password`, `url`, `path`, `charset`, ...), plus:
+
+| Key | What it does |
+| --- | --- |
+| `logger` | Service id of a PSR-3 logger. Every query is logged to it. |
+| `middlewares` | List of service ids of DBAL middlewares to wrap the connection in. |
+| `params_provider` | Service id of a `ParamsProvider` that supplies the connection options at runtime instead of config. See [Extension points](#extension-points). |
+
+</details>
+
+<details>
+<summary><strong>Entity manager settings</strong> (<code>entity_managers.&lt;name&gt;</code>)</summary>
+
+| Key | Default | What it does |
+| --- | --- | --- |
+| `mapping.paths` | `[]` | Folders containing your entities. |
+| `mapping.driver` | `'attributes'` | How entities are mapped: `'attributes'`, `'xml'`, or the service id of your own `MappingDriver`. |
+| `connection` | same as the entity manager's name | Which connection it uses. |
+| `dev_mode` | top-level `dev_mode` | Override `dev_mode` for just this entity manager. |
+| `cache` | built-in file cache | Service id of a PSR-6 cache pool to use for metadata, query and result caches. |
+| `naming_strategy` | underscore (`firstName` → `first_name`) | Service id of a Doctrine `NamingStrategy`. |
+| `event_subscribers` | `[]` | List of service ids of Doctrine event subscribers. |
+
+</details>
+
+<details id="migrations-settings">
+<summary><strong>Migrations settings</strong> (<code>migrations</code>)</summary>
+
+With no settings, connection `my-db` keeps its migrations in `database/migrations/my-db`, namespace `Database\Migrations\MyDb`,
+and records them in the table `doctrine_migration_versions`.
+
+To change that, use any [Doctrine Migrations option](https://www.doctrine-project.org/projects/doctrine-migrations/en/current/reference/configuration.html)
+(`migrations_paths`, `table_storage`, `all_or_nothing`, `transactional`, `check_database_platform`, `organize_migrations`, `custom_template`), in one of two places:
+
+- `migrations.defaults` applies to **every** connection.
+- `migrations.connections.<name>` applies to **one** connection, and wins over `defaults`.
 
 ```php
 'migrations' => [
-    'defaults'    => ['table_storage' => ['table_name' => 'doctrine_migration_versions']],
+    // every connection: use a different version table name
+    'defaults' => [
+        'table_storage' => ['table_name' => 'migration_versions'],
+    ],
+    // just "reporting": keep its migrations in db/reporting
     'connections' => [
-        'reporting' => ['migrations_paths' => ['Reporting\\Migrations' => 'db/reporting']],
+        'reporting' => [
+            'migrations_paths' => ['Reporting\\Migrations' => 'db/reporting'],
+        ],
     ],
 ],
 ```
 
-With nothing set, a connection `my-db` uses the directory `database/migrations/my-db` and the namespace `Database\Migrations\MyDb`.
-
-### General settings
-
-| Key | Meaning |
-| --- | --- |
-| `dev_mode` | array caches instead of filesystem caches; `false` by default |
-| `base_path` | root for relative paths; defaults to the working directory |
-| `cache_dir` | where caches go; defaults to `data/cache/doctrine` |
-| `types` | custom DBAL types, `name => class` |
-
-### Where does it go?
-
-| I want to... | Put it in |
-| --- | --- |
-| add a database | `connections.<name>` |
-| change the host, credentials or driver | `connections.<name>` |
-| log queries | `connections.<name>.logger` |
-| tell the ORM where a database's entities are | `entity_managers.<name>.mapping.paths` |
-| use XML mapping | `entity_managers.<name>.mapping.driver` |
-| change where a database's migrations live | `migrations.connections.<name>.migrations_paths` |
-| change the version table for every database | `migrations.defaults.table_storage` |
-| change the version table for one database | `migrations.connections.<name>.table_storage` |
-| choose which database is the default | `default` |
-| turn on development caching | `dev_mode` |
-| register a custom column type | `types` |
+</details>
 
 ## Use
 
@@ -210,7 +284,7 @@ final readonly class RecordPageViewHandler
 `#[UseEntityManager('name')]` and `#[UseConnection('name')]` pick the named service; a parameter without an attribute is resolved by its class type
 (so a bare `EntityManagerInterface` is the default entity manager). Without the attribute factory, `ConfigAbstractFactory` with `ServiceId` ids does the same from config.
 
-Inject the `Registry` itself only when the connection is chosen at runtime, for example per tenant.
+Inject the `Registry` itself only when the connection is chosen at runtime, for example one database per customer (see [Extension points](#extension-points)).
 
 ## Custom factories
 
@@ -227,9 +301,177 @@ composer check
 
 ## Extension points
 
-These exist so other packages, such as [ssmiff/mezzio-tenancy](https://github.com/ssmiff/mezzio-tenancy), can build on the registry.
+Most apps never need these. Use them when **the database isn't known until the app is running**, for example
+one database per customer, where the customer is chosen by the request or by a command-line option.
 
-- **Dynamic connections.** A connection entry with `'params_provider' => SomeProvider::class` takes its DBAL parameters from that service (an `Ssmiff\MezzioDoctrine\ParamsProvider`) when the connection is first used, instead of from config.
-- **`Registry::reset(string $name)`** closes the named connection and entity manager and forgets them, so the next use rebuilds them. Combined with a params provider it re-points a connection at runtime.
-- **Console listeners.** `doctrine.console_listeners` maps service ids to priorities; each service is an `Ssmiff\MezzioDoctrine\Console\ConsoleCommandListener` attached to the console command event, before the `--conn` listener when its priority is above 0.
+There are three pieces:
 
+| Piece | What it does |
+| --- | --- |
+| `ParamsProvider` | Supplies a connection's settings (host, dbname, ...) from code instead of config. |
+| `Registry::reset($name)` | Throws away a connection and its entity manager, so the next use builds them again, asking the `ParamsProvider` again. |
+| `console_listeners` | Runs your code before any console command, e.g. to choose the customer before `migrations:migrate` runs. |
+
+### Full example: one database per customer
+
+Every customer has their own database named `customer_<id>`. The app uses a connection called `customer`
+whose database changes depending on who is being served.
+
+**1. Somewhere to store the current customer**
+
+```php
+namespace App\Customer;
+
+final class CurrentCustomer
+{
+    public ?string $id = null;
+}
+```
+
+**2. A `ParamsProvider` that builds the connection settings for that customer**
+
+```php
+namespace App\Customer;
+
+use RuntimeException;
+use Ssmiff\MezzioDoctrine\ParamsProvider;
+
+final readonly class CustomerDatabase implements ParamsProvider
+{
+    public function __construct(private CurrentCustomer $customer) {}
+
+    public function params(): array
+    {
+        if ($this->customer->id === null) {
+            throw new RuntimeException('No customer selected.');
+        }
+
+        return [
+            'driver'   => 'pdo_mysql',
+            'host'     => 'localhost',
+            'dbname'   => 'customer_' . $this->customer->id,
+            'user'     => 'app',
+            'password' => 'secret',
+        ];
+    }
+}
+```
+
+`params()` returns exactly what you would otherwise write in `doctrine.connections.<name>`.
+It is called the first time the connection is used, and again after each `reset()`.
+
+**3. Config**
+
+```php
+use App\Customer\CurrentCustomer;
+use App\Customer\CustomerDatabase;
+use App\Customer\SelectCustomerFromEnv;
+use Laminas\ServiceManager\Factory\InvokableFactory;
+use Ssmiff\MezzioContainerHelpers\Factory\AttributeFactory;
+
+return [
+    'doctrine' => [
+        'connections' => [
+            'default'  => [/* your normal app database */],
+            'customer' => ['params_provider' => CustomerDatabase::class],
+        ],
+        'entity_managers' => [
+            'customer' => ['mapping' => ['paths' => ['src/Customer/Entity']]],
+        ],
+        'console_listeners' => [
+            SelectCustomerFromEnv::class => 10, // above 0 = runs before --conn is handled
+        ],
+    ],
+    'dependencies' => [
+        'factories' => [
+            CurrentCustomer::class       => InvokableFactory::class,
+            CustomerDatabase::class      => AttributeFactory::class,
+            SelectCustomerFromEnv::class => AttributeFactory::class,
+        ],
+    ],
+];
+```
+
+`logger` and `middlewares` can still go next to `params_provider`; every other connection setting comes from `params()`.
+
+**4. Use it in a web request**
+
+A middleware sets the customer before anything touches the database:
+
+```php
+namespace App\Customer;
+
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\MiddlewareInterface;
+use Psr\Http\Server\RequestHandlerInterface;
+
+final readonly class SelectCustomerMiddleware implements MiddlewareInterface
+{
+    public function __construct(private CurrentCustomer $customer) {}
+
+    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
+    {
+        $this->customer->id = $request->getHeaderLine('X-Customer-Id');
+
+        return $handler->handle($request);
+    }
+}
+```
+
+Handlers then get the entity manager from the registry when they need it:
+
+```php
+$orders = $registry->entityManager('customer')->getRepository(Order::class)->findAll();
+```
+
+With PHP-FPM every request starts fresh, so you don't need `reset()` here.
+On a long-running server (RoadRunner, Swoole, FrankenPHP worker mode), call `$registry->reset('customer')`
+after changing the customer, so the next request doesn't reuse the previous customer's connection.
+
+> Inject `Registry`, not `EntityManagerInterface`, into anything that uses the `customer` connection.
+> After `reset()` an entity manager you were handed earlier is closed and still points at the old database.
+
+**5. Use it from the command line**
+
+A console listener reads the customer from an environment variable before the command runs:
+
+```php
+namespace App\Customer;
+
+use Ssmiff\MezzioDoctrine\Console\ConsoleCommandListener;
+use Symfony\Component\Console\Event\ConsoleCommandEvent;
+
+final readonly class SelectCustomerFromEnv implements ConsoleCommandListener
+{
+    public function __construct(private CurrentCustomer $customer) {}
+
+    public function __invoke(ConsoleCommandEvent $event): void
+    {
+        $this->customer->id = getenv('CUSTOMER') ?: null;
+    }
+}
+```
+
+```
+CUSTOMER=42 vendor/bin/laminas migrations:migrate --conn=customer
+```
+
+**6. Do something for every customer: `reset()`**
+
+To run work against each customer database in one process, change the customer and reset between them:
+
+```php
+foreach (['41', '42', '43'] as $id) {
+    $currentCustomer->id = $id;
+    $registry->reset('customer'); // next line connects to customer_<id>
+
+    $registry->connection('customer')->executeStatement('UPDATE orders SET archived = 1 WHERE ...');
+}
+```
+
+### Console listener details
+
+- `console_listeners` maps a service id to a priority. Each service must implement `Ssmiff\MezzioDoctrine\Console\ConsoleCommandListener`.
+- Listeners run on Symfony's `ConsoleEvents::COMMAND`, before every command. The built-in `--conn` handling runs at priority 0,
+  so use a priority **above 0** if your listener must run first (as above, so the customer is set before the connection is chosen).

@@ -23,7 +23,12 @@ final class MigrationsConfigurationLoader implements ConfigurationLoader
 {
     public private(set) ?string $selected = null;
 
-    public function __construct(private readonly Settings $config, private readonly Registry $registry) {}
+    /** @param list<MigrationsPathsProvider> $providers */
+    public function __construct(
+        private readonly Settings $config,
+        private readonly Registry $registry,
+        private readonly array $providers = [],
+    ) {}
 
     public function select(string $connection): void
     {
@@ -55,7 +60,12 @@ final class MigrationsConfigurationLoader implements ConfigurationLoader
 
         $settings = [...$defaults->toArray(), ...$override->toArray()];
 
-        $configured = ($override->has('migrations_paths') ? $override : $defaults)->stringMap('migrations_paths');
+        // Providers add to the connection's own paths (or the defaults); the app's directory wins for a namespace
+        // both name. With none at all, the conventional folder is used.
+        $configured = [
+            ...$this->provided($name),
+            ...($override->has('migrations_paths') ? $override : $defaults)->stringMap('migrations_paths'),
+        ];
         $paths      = [];
         $default = ['Database\\Migrations\\' . Paths::studly($name) => 'database/migrations/' . $name];
 
@@ -71,5 +81,16 @@ final class MigrationsConfigurationLoader implements ConfigurationLoader
         $settings += ['table_storage' => ['table_name' => 'doctrine_migration_versions'], 'em' => $name];
 
         return new ConfigurationArray($settings)->getConfiguration();
+    }
+
+    /** @return array<string, string> */
+    private function provided(string $connection): array
+    {
+        $paths = [];
+        foreach ($this->providers as $provider) {
+            $paths = [...$paths, ...$provider->migrationsPaths($connection)];
+        }
+
+        return $paths;
     }
 }

@@ -7,6 +7,7 @@ namespace Ssmiff\MezzioDoctrine\Test;
 use Laminas\ServiceManager\ServiceManager;
 use Ssmiff\MezzioDoctrine\ConfigProvider;
 use Ssmiff\MezzioDoctrine\Registry;
+use Ssmiff\MezzioDoctrine\Test\Fixture\ReportingMigrations;
 use Ssmiff\MezzioContainerHelpers\Services;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\CommandLoader\ContainerCommandLoader;
@@ -47,6 +48,57 @@ final class ConsoleTest extends TestCase
 
         self::assertStringContainsString('Database\Migrations\MyDb', $app->getDisplay());
         self::assertStringContainsString($this->base . '/database/migrations/my-db', $app->getDisplay());
+    }
+
+    public function testAPathsProviderSuppliesTheMigrationsOfItsConnection(): void
+    {
+        $container = $this->container(['migrations' => ['paths_providers' => [ReportingMigrations::class]]]);
+        $container->setService(ReportingMigrations::class, new ReportingMigrations());
+
+        $reporting = $this->app(container: $container);
+        $reporting->run(['command' => 'migrations:status', '--conn' => 'reporting'], ['decorated' => false]);
+
+        self::assertStringContainsString('Provided\Reporting', $reporting->getDisplay());
+        self::assertStringContainsString($this->base . '/provided/reporting', $reporting->getDisplay());
+
+        // Migrations commands read their configuration once, so another connection needs a fresh container.
+        $container = $this->container(['migrations' => ['paths_providers' => [ReportingMigrations::class]]]);
+        $container->setService(ReportingMigrations::class, new ReportingMigrations());
+
+        $other = $this->app(container: $container);
+        $other->run(['command' => 'migrations:status', '--conn' => 'my-db'], ['decorated' => false]);
+
+        self::assertStringContainsString('Database\Migrations\MyDb', $other->getDisplay());
+    }
+
+    public function testAProvidersPathsAreAddedToTheConnectionsOwn(): void
+    {
+        $container = $this->container(['migrations' => [
+            'paths_providers' => [ReportingMigrations::class],
+            'connections'     => ['reporting' => ['migrations_paths' => ['Mine' => 'mine']]],
+        ]]);
+        $container->setService(ReportingMigrations::class, new ReportingMigrations());
+
+        $app = $this->app(container: $container);
+        $app->run(['command' => 'migrations:status', '--conn' => 'reporting'], ['decorated' => false]);
+
+        self::assertStringContainsString($this->base . '/mine', $app->getDisplay());
+        self::assertStringContainsString($this->base . '/provided/reporting', $app->getDisplay());
+    }
+
+    public function testTheAppsDirectoryWinsForANamespaceAProviderAlsoNames(): void
+    {
+        $container = $this->container(['migrations' => [
+            'paths_providers' => [ReportingMigrations::class],
+            'connections'     => ['reporting' => ['migrations_paths' => ['Provided\\Reporting' => 'moved']]],
+        ]]);
+        $container->setService(ReportingMigrations::class, new ReportingMigrations());
+
+        $app = $this->app(container: $container);
+        $app->run(['command' => 'migrations:status', '--conn' => 'reporting'], ['decorated' => false]);
+
+        self::assertStringContainsString($this->base . '/moved', $app->getDisplay());
+        self::assertStringNotContainsString($this->base . '/provided/reporting', $app->getDisplay());
     }
 
     public function testDefaultConnectionIsUsedWithoutTheOption(): void

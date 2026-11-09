@@ -7,6 +7,7 @@ vendor/bin/laminas migrations:migrate
 vendor/bin/laminas migrations:migrate --conn=reporting
 vendor/bin/laminas migrations:generate --conn=reporting
 vendor/bin/laminas orm:validate-schema --conn=main
+vendor/bin/laminas db:run-sql "SELECT COUNT(*) FROM users" --conn=main
 ```
 
 Requires PHP 8.5. Licensed under the [MIT licence](LICENSE).
@@ -69,6 +70,7 @@ Try it:
 ```
 vendor/bin/laminas db:connections
 vendor/bin/laminas migrations:status
+vendor/bin/laminas db:run-sql "SELECT 1"
 ```
 
 > **Using SQLite?** Replace the connection with `['driver' => 'pdo_sqlite', 'path' => 'data/app.sqlite']`.
@@ -106,6 +108,7 @@ Then choose it with `--conn` on any command:
 
 ```
 vendor/bin/laminas migrations:migrate --conn=reporting
+vendor/bin/laminas db:run-sql "SELECT * FROM page_views LIMIT 10" --conn=reporting
 ```
 
 Its migrations live in `database/migrations/reporting` by default.
@@ -118,6 +121,7 @@ You only need these if the defaults don't suit you. Each one goes under `doctrin
 | I want to... | Add this |
 | --- | --- |
 | make a connection other than `default` the default | `'default' => 'reporting'` |
+| run a quick query against a database | nothing: `vendor/bin/laminas db:run-sql "SELECT ..." --conn=<name>` (see [Running SQL](#running-sql)) |
 | use the faster in-memory caches while developing | `'dev_mode' => true` (put it in `doctrine.local.php`) |
 | log every SQL query | `'logger' => 'my.psr3.logger'` inside the connection |
 | set the PostgreSQL `search_path` | `'search_path' => ['app', 'public']` inside the connection |

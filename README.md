@@ -120,6 +120,7 @@ You only need these if the defaults don't suit you. Each one goes under `doctrin
 | make a connection other than `default` the default | `'default' => 'reporting'` |
 | use the faster in-memory caches while developing | `'dev_mode' => true` (put it in `doctrine.local.php`) |
 | log every SQL query | `'logger' => 'my.psr3.logger'` inside the connection |
+| set the PostgreSQL `search_path` | `'search_path' => ['app', 'public']` inside the connection |
 | use XML mapping instead of attributes | `'driver' => 'xml'` inside `entity_managers.<name>.mapping` |
 | put migrations somewhere else | see [Migrations](#migrations-settings) below |
 | rename the migrations version table | see [Migrations](#migrations-settings) below |
@@ -155,6 +156,35 @@ Any [Doctrine DBAL connection option](https://www.doctrine-project.org/projects/
 | `logger` | Service id of a PSR-3 logger. Every query is logged to it. |
 | `middlewares` | List of service ids of DBAL middlewares to wrap the connection in. |
 | `params_provider` | Service id of a `ParamsProvider` that supplies the connection options at runtime instead of config. See [Extension points](#extension-points). |
+| `search_path` | PostgreSQL only. A schema name or a list of them, set with `SET search_path` each time the connection opens. See below. |
+
+#### `search_path`
+
+```php
+'connections' => [
+    'default' => [
+        'driver'      => 'pdo_pgsql',
+        'host'        => 'db',
+        'dbname'      => 'app',
+        'user'        => 'app',
+        'password'    => '...',
+        'search_path' => ['tenant_a', 'public'],
+    ],
+],
+```
+
+- It is applied by `Ssmiff\MezzioDoctrine\Dbal\SearchPathMiddleware`, added after your own `middlewares` and the `logger`, so they
+  see the `SET` statement. It runs on every physical connect, including reconnects, migrations and console commands.
+- Each name is quoted as an identifier, so write schemas exactly as they are named (`'$user'` works too).
+- A `driver` other than `pdo_pgsql` or `pgsql` is rejected. With only `driverClass`, it is not checked.
+- Unqualified `CREATE TABLE` goes into the first schema in the path. That includes the migrations version table.
+- A `ParamsProvider` can return `search_path` from `params()`. That replaces any `search_path` set next to
+  `params_provider` in config, which otherwise still applies.
+- Behind PgBouncer in transaction pooling mode, a session `SET` does not reliably stick. Use
+  `ALTER ROLE ... SET search_path` there instead.
+
+You can also use the middleware directly, for example in your own `middlewares` list:
+`new SearchPathMiddleware(['tenant_a', 'public'])`.
 
 </details>
 
@@ -392,7 +422,8 @@ return [
 ];
 ```
 
-`logger` and `middlewares` can still go next to `params_provider`; every other connection setting comes from `params()`.
+`logger`, `middlewares` and `search_path` can still go next to `params_provider`; every other connection setting comes from `params()`.
+For one schema per customer instead of one database, return `'search_path' => [$schema]` from `params()`.
 
 **4. Use it in a web request**
 

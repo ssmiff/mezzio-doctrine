@@ -270,11 +270,41 @@ Each connection has its own folder, namespace and version table:
 
 Override under `doctrine.migrations.connections.<name>` with the usual `migrations_paths` and `table_storage` keys.
 
-A package that ships migrations for a connection whose name the app chooses can't key its config by that name.
-It lists a `Ssmiff\MezzioDoctrine\Migrations\MigrationsPathsProvider` service under
-`doctrine.migrations.paths_providers` instead; `migrationsPaths($connection)` returns `namespace => directory`
-for the connection being migrated, or `[]`. They are added to the connection's own `migrations_paths`; for a namespace
-both name, the app's directory wins.
+#### Migrations for a connection the app names
+
+A package that ships migrations for a connection whose name the app chooses can't key its config by that name. It
+provides a `Ssmiff\MezzioDoctrine\Migrations\MigrationsPathsProvider` instead, which is asked for the migrations of the
+connection being migrated:
+
+```php
+use Ssmiff\MezzioContainerHelpers\Attribute\ConfigValue;
+use Ssmiff\MezzioDoctrine\Migrations\MigrationsPathsProvider;
+
+final readonly class AuditMigrations implements MigrationsPathsProvider
+{
+    public function __construct(
+        #[ConfigValue('audit.connection', 'audit')]
+        private string $connection,
+    ) {}
+
+    public function migrationsPaths(string $connection): array
+    {
+        return $connection === $this->connection ? ['Acme\\Audit\\Migrations' => __DIR__ . '/../migrations'] : [];
+    }
+}
+```
+
+and registers it in its `ConfigProvider`:
+
+```php
+'dependencies' => ['factories' => [AuditMigrations::class => AttributeFactory::class]],
+'doctrine'     => ['migrations' => ['paths_providers' => [AuditMigrations::class]]],
+```
+
+With `'audit' => ['connection' => 'reporting']` in the app's config, `migrations:migrate --conn=reporting` runs them.
+A provider's paths are added to the connection's own `migrations_paths` (or the defaults); for a namespace both name,
+the app's directory wins. [ssmiff/mezzio-tenancy](https://github.com/ssmiff/mezzio-tenancy) supplies its landlord
+migrations this way.
 
 `migrations:diff` needs an entity manager with mappings; on a connection without any it refuses, since the result would drop every table. Use `migrations:generate` there.
 
